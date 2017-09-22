@@ -9,21 +9,52 @@ class TransactionsController < ApplicationController
     }
   end
 
-  # GET /byuseridgiving
-  def byUserIdGiving
-    if params[:useridgiving]
-      if !(Integer(params[:useridgiving]) rescue false)
-        error("Not Acceptable (Invalid Params)", 406, "The parameter useridgiving is not an Integer")
+  # GET /byuserid
+  def byUserId
+    if params[:userid]
+      if !(Integer(params[:userid]) rescue false)
+        error("Bad Request", 400, "Userid must be an Integer")
         return -1
       else
-        @transactions= Transaction.all.where(useridgiving: params[:useridgiving])
-        render json: {total:@transactions.count,list:@transactions}
+        @transactions= Transaction.all.where(useridgiving: params[:userid]) #send
+        @transactions2= Transaction.all.where(useridreceiving: params[:userid]) #receive
+
+        if @transactions.count == 0 && @transactions2.count ==0
+          error("Not Found", 404, "The resource does not exist")
+          return -1
+        else
+          render json: {total_send:@transactions.count,list_send:@transactions,total_receive: @transactions2.count, list_receive:@transactions2}
+        end
       end
     else
-      error("Not Acceptable (Invalid Params)", 406, "The parameter must be set like useridgiving")
+      error("Not Acceptable (Invalid Params)", 406, "The parameter must be set like userid")
       return -1
     end
+  end
 
+  def byDate
+    if params[:userid] && params[:days]
+      cond = !(Integer(params[:userid]) rescue false)
+      cond2 = !(Integer(params[:days])rescue false)
+      cond3 = cond || cond2
+      if cond3
+        error("Bad Request", 400, "Userid and days must be an Integer")
+        return -1
+      else
+        @transactions = Transaction.where("useridgiving = ? AND created_at >= ?",(params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #send
+        @transactions2 = Transaction.where("useridreceiving = ? AND created_at >= ?",(params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #receive
+
+        if @transactions.count == 0 && @transactions2.count ==0
+          error("Not Found", 404, "The resource does not exist")
+          return -1
+        else
+          render json: {total_send:@transactions.count,list_send:@transactions,total_receive: @transactions2.count, list_receive:@transactions2}
+        end
+      end
+    else
+      error("Not Acceptable (Invalid Params)", 406, "The parameters must be set like userid and days")
+      return -1
+    end
   end
 
   # GET /transactions
