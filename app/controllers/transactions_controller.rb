@@ -1,5 +1,5 @@
 class TransactionsController < ApplicationController
-  before_action :set_transaction, only: [:show]
+  before_action :set_transaction, only: [:show, :update]
 
   def error(message,code,description)
     render status: code, json:{
@@ -9,21 +9,26 @@ class TransactionsController < ApplicationController
     }
   end
 
-  # GET /byuserid
+  # GET /byuserid?userid={id}
   def byUserId
     if params[:userid]
       if !(Integer(params[:userid]) rescue false)
         error("Bad Request", 400, "Userid must be an Integer")
         return -1
       else
-        @transactions= Transaction.all.where(useridgiving: params[:userid]) #send
-        @transactions2= Transaction.all.where(useridreceiving: params[:userid]) #receive
+        @transactions = Transaction.all.where("useridgiving = ? AND useridreceiving != ?" , (params[:userid]).to_i, (params[:userid]).to_i) #send
+        @transactions2 = Transaction.all.where("useridgiving != ? AND useridreceiving = ?" , (params[:userid]).to_i, (params[:userid]).to_i) #receive
+        @transactions3 = Transaction.all.where(useridgiving: params[:userid], useridreceiving: params[:userid]) #load money
 
-        if @transactions.count == 0 && @transactions2.count ==0
+        if @transactions.count == 0 && @transactions2.count == 0 && @transactions3 == 0
           error("Not Found", 404, "The resource does not exist")
           return -1
         else
-          render json: {total_send:@transactions.count,list_send:@transactions,total_receive: @transactions2.count, list_receive:@transactions2}
+          render json: {
+            total_send:@transactions.count,list_send:@transactions,
+            total_receive: @transactions2.count, list_receive:@transactions2,
+            total_load: @transactions3.count, list_load:@transactions3
+          }
         end
       end
     else
@@ -32,6 +37,7 @@ class TransactionsController < ApplicationController
     end
   end
 
+# GET /bydate?userid={id}
   def byDate
     if params[:userid] && params[:days]
       cond = !(Integer(params[:userid]) rescue false)
@@ -41,14 +47,18 @@ class TransactionsController < ApplicationController
         error("Bad Request", 400, "Userid and days must be an Integer")
         return -1
       else
-        @transactions = Transaction.where("useridgiving = ? AND created_at >= ?",(params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #send
-        @transactions2 = Transaction.where("useridreceiving = ? AND created_at >= ?",(params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #receive
-
-        if @transactions.count == 0 && @transactions2.count ==0
+        @transactions = Transaction.where("state = 'complete' AND useridgiving = ? AND useridreceiving != ? AND created_at >= ?", (params[:userid]).to_i , (params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #send
+        @transactions2 = Transaction.where("state = 'complete' AND useridgiving != ? AND useridreceiving = ? AND created_at >= ?", (params[:userid]).to_i , (params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #receive
+        @transactions3 = Transaction.where("state = 'complete' AND useridgiving = ? AND useridreceiving = ? AND created_at >= ?", (params[:userid]).to_i , (params[:userid]).to_i , Time.now - (params[:days]).to_i.days) #load money
+        if @transactions.count == 0 && @transactions2.count == 0 && @transactions3 == 0
           error("Not Found", 404, "The resource does not exist")
           return -1
         else
-          render json: {total_send:@transactions.count,list_send:@transactions,total_receive: @transactions2.count, list_receive:@transactions2}
+          render json: {
+            total_send:@transactions.count,list_send:@transactions,
+            total_receive: @transactions2.count, list_receive:@transactions2,
+            total_load: @transactions3.count, list_load:@transactions3
+          }
         end
       end
     else
@@ -101,7 +111,7 @@ class TransactionsController < ApplicationController
     cond2 = !(Integer(params[:useridreceiving])rescue false)
     cond3 = cond || cond2
     if cond3
-      error("Bad Request", 400, "Useridgiving and Useridreceiving must a Integer")
+      error("Bad Request", 400, "Useridgiving and Useridreceiving must be an Integer")
       return -1
     elsif !(Float(params[:amount]) rescue false)
       error("Bad Request", 400, "Price must be a Float")
@@ -111,10 +121,38 @@ class TransactionsController < ApplicationController
     end
 
     if @transaction.save
-      head 201
+      render json: @transaction, status: 201
     else
       render json: @transaction.errors, status: :unprocessable_entity
     end
+  end
+
+  # PATCH/PUT /transactions/1
+  def update
+    if params[:useridgiving] || params[:useridreceiving]
+      cond = !(Integer(params[:useridgiving]) rescue false)
+      cond2 = !(Integer(params[:useridreceiving])rescue false)
+      cond3 = cond || cond2
+      if cond3
+        error("Not Acceptable (Invalid Params)", 406, "Useridgiving and Useridreceiving must be an Integer")
+        return -1
+      elsif !(Float(params[:amount]) rescue false)
+        error("Not Acceptable (Invalid Params)", 406, "Price must be a Float")
+        return -1
+      else
+        @transaction = Transaction.new(transaction_params)
+      end
+    end
+    if(@transaction)
+      if @transaction.update(transaction_params)
+        head 204
+      else
+        render json: @transaction.errors, status: :unprocessable_entity
+      end
+    else
+      error("Not Found", 404, "The resource does not exist")
+    end
+
   end
 
   private
@@ -125,6 +163,6 @@ class TransactionsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def transaction_params
-      params.require(:transaction).permit(:useridgiving, :useridreceiving, :amount)
+      params.require(:transaction).permit(:useridgiving, :useridreceiving, :amount, :state)
     end
 end
