@@ -9,7 +9,7 @@ class TransactionsController < ApplicationController
     }
   end
 
-  # GET /byuserid?userid={id}
+  # GET /byuserid?userid={id} get all transactions sended, received and the loads to the account
   def byUserId
     if params[:userid]
       if !(Integer(params[:userid]) rescue false)
@@ -37,7 +37,7 @@ class TransactionsController < ApplicationController
     end
   end
 
-# GET /bydate?userid={id}
+# GET /bydate?userid={id} get all 'complete' transactions sended, received and the loads to the account by days ago
   def byDate
     if params[:userid] && params[:days]
       cond = !(Integer(params[:userid]) rescue false)
@@ -67,7 +67,7 @@ class TransactionsController < ApplicationController
     end
   end
 
-  # GET /transactions
+  # GET /transactions get all transactions
   def index
     @transactions = Transaction.all
     count = Transaction.count
@@ -92,7 +92,7 @@ class TransactionsController < ApplicationController
     end
   end
 
-  # GET /transactions/1
+  # GET /transactions/1 get a transaction by id
   def show
     if !(Integer(params[:id]) rescue false)
       error("Not Acceptable (Invalid Params)", 406, "The parameter id is not an Integer")
@@ -105,7 +105,7 @@ class TransactionsController < ApplicationController
     end
   end
 
-  # POST /transactions
+  # POST /transactions create a transaction
   def create
     cond = !(Integer(params[:useridgiving]) rescue false)
     cond2 = !(Integer(params[:useridreceiving])rescue false)
@@ -127,7 +127,7 @@ class TransactionsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /transactions/1
+  # PATCH/PUT /transactions/1 update a transaction by id
   def update
     if params[:useridgiving] || params[:useridreceiving]
       cond = !(Integer(params[:useridgiving]) rescue false)
