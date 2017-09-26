@@ -129,19 +129,9 @@ class TransactionsController < ApplicationController
 
   # PATCH/PUT /transactions/1 update a transaction by id
   def update
-    if params[:useridgiving] || params[:useridreceiving]
-      cond = !(Integer(params[:useridgiving]) rescue false)
-      cond2 = !(Integer(params[:useridreceiving])rescue false)
-      cond3 = cond || cond2
-      if cond3
-        error("Not Acceptable (Invalid Params)", 406, "Useridgiving and Useridreceiving must be an Integer")
-        return -1
-      elsif !(Float(params[:amount]) rescue false)
-        error("Not Acceptable (Invalid Params)", 406, "Price must be a Float")
-        return -1
-      else
-        @transaction = Transaction.new(transaction_params)
-      end
+    if params[:useridgiving] || params[:useridreceiving] || params[:amount]
+      error("Not Acceptable (Invalid Params)", 406, "Only avaliable to update state")
+      return -1
     end
     if(@transaction)
       if @transaction.update(transaction_params)
