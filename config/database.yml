@@ -16,7 +16,7 @@ default: &default
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   username: arqsoft
   password: 123
-  host: transactions_db
+  host: transactions-db
   socket: /tmp/mysql.sock
 
 development:

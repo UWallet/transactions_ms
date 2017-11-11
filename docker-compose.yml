@@ -1,6 +1,6 @@
 version: '2'
 services:
-  transactions_db:
+  transactions-db:
     image: mysql
     ports:
       - "3306:3306"
@@ -10,10 +10,10 @@ services:
       MYSQL_PASSWORD: 123
       MYSQL_DATABASE: transactions
       MYSQL_HOST: transactions_db
-  transactions_ms:
+  transactions-ms:
     build: .
     command: bash -c "sleep 40 && rm -f tmp/pids/server.pid && bundle exec rails db:migrate && bundle exec rails s -p 3000 -b '0.0.0.0'"
     ports:
       - "3000:3000"
     depends_on:
-      - transactions_db
+      - transactions-db
