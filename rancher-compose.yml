@@ -1,2 +1,4 @@
 transactions-ms:
   scale: 2
+transactions-db:
+  scale: 2
